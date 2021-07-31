@@ -1,0 +1,68 @@
+server {
+	if ($host = ctrl-c.club) {
+		return 301 https://$host$request_uri;
+	} # managed by Certbot
+
+
+	listen 80 ;
+	listen [::]:80  ;
+	server_name ctrl-c.club;
+	return 404; # managed by Certbot
+}
+
+server {
+	root /usr/share/nginx/html;
+	index index.html index.htm index.php;
+	server_name ctrl-c.club; # managed by Certbot
+
+	error_page 404 /404.html;
+
+	# Allow SSI for MOTD
+	location / {
+		ssi on;
+		try_files $uri $uri/ =404;
+	}
+
+	# Stop spammy bots from hammering our servers
+	if ($http_user_agent ~* "semrushbot|mauibot") { return 403; }
+
+	# PHP Config block for Ctrl-C.club USER pages:
+	location ~ ^/~(.+?)(/.*)\.php?$ {
+		alias /home/$1/public_html/$2.php;
+
+		fastcgi_split_path_info ^(.+\.php)(/.+)$;
+
+		# NOTE: You should have "cgi.fix_pathinfo = 0;" in php.ini
+		fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+		fastcgi_index index.php;
+		fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+		include fastcgi_params;
+	}
+
+	# HTML redirection block for Ctrl-C.club USER pages:
+	location ~ ^/~(.+?)(/.*)?$ {
+		alias /home/$1/public_html$2;
+		ssi on;
+		index index.html index.htm;
+		autoindex on;
+	}
+
+	# PHP Config block for Ctrl-C.club ROOT pages:
+	location ~ \.php$ {
+		fastcgi_split_path_info ^(.+\.php)(/.+)$;
+
+		# NOTE: You should have "cgi.fix_pathinfo = 0;" in php.ini
+		fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+		fastcgi_index index.php;
+		fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+		include fastcgi_params;
+	}
+
+	# Certbot-managed junk
+	listen [::]:443 ssl; # managed by Certbot
+	listen 443 ssl; # managed by Certbot
+	ssl_certificate /etc/letsencrypt/live/ctrl-c.club/fullchain.pem; # managed by Certbot
+	ssl_certificate_key /etc/letsencrypt/live/ctrl-c.club/privkey.pem; # managed by Certbot
+	include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+	ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
